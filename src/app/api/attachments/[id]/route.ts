@@ -36,9 +36,23 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Vercel Blob URL の場合はリダイレクト
   if (attachment.filePath.startsWith("http")) {
-    return NextResponse.redirect(attachment.filePath);
+    // Vercel Blob (Private) からサーバー側でダウンロードして返す
+    const res = await fetch(attachment.filePath, {
+      headers: {
+        Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+      },
+    });
+    if (!res.ok) {
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
+    }
+    const buffer = await res.arrayBuffer();
+    return new NextResponse(buffer, {
+      headers: {
+        "Content-Type": attachment.mimeType,
+        "Content-Disposition": `inline; filename="${encodeURIComponent(attachment.fileName)}"`,
+      },
+    });
   }
 
   return NextResponse.json({ error: "File not found" }, { status: 404 });
