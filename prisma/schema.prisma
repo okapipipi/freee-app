@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ===== 部門 =====
+model Department {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  freeeSectionId Int?     @unique // freee部門タグID
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users          User[]
+  expenseReports ExpenseReport[]
+}
+
+// ===== ユーザー =====
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  name           String   // フルネーム（経費の場合freee取引先名になる）
+  role           String   @default("employee") // "admin" | "employee" | "executive"
+  departmentId   String?
+  department     Department? @relation(fields: [departmentId], references: [id])
+  freeePartnerId Int?     // freee取引先IDとの紐付け
+  isActive           Boolean  @default(true)
+  isHidden           Boolean  @default(false) // 退職者など一覧から非表示
+  mustChangePassword Boolean  @default(false) // 初回ログイン時にパスワード変更を強制
+  sortOrder          Int      @default(9999)  // 一覧表示順（小さいほど上）
+  invitedAt          DateTime?               // 招待メール最終送信日時
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  expenseReports ExpenseReport[]
+}
+
+// ===== 経費・販管費 申請 =====
+model ExpenseReport {
+  id              String   @id @default(cuid())
+
+  // 申請者情報
+  submitterId     String?
+  submitter       User?    @relation(fields: [submitterId], references: [id])
+
+  // 申請内容
+  title           String   // 件名
+  description     String   // 利用内容
+  amount          Int      // 金額（税込・円）
+  category        String
+  // "expense"（経費）| "sga"（販管費）
+  // "expense_billable"（経費・取引先請求予定）| "sga_billable"（販管費・取引先請求予定）
+  costType        String   // "running_annual" | "running_monthly" | "onetime"
+
+  // 税区分（社員が設定、岡部が承認時に確認/変更可）
+  taxType         String   @default("inclusive") // "inclusive"(税込) | "overseas"(海外・対象外)
+
+  // 支払方法（販管費のみ）
+  paymentMethod   String?
+  // "bank_transfer"(銀行振込) | "black_amex"(黒AMEX) | "company_amex"(会社AMEX)
+  // "upsider"(UPSIDER) | "other"(その他)
+
+  // 費用発生終了予定（販管費のみ）
+  costEndDate     String?  // YYYY-MM or "unknown"
+
+  // 領収書・請求書の有無
+  hasReceipt      Boolean  @default(false)
+
+  // 上司承認者名（経費のみ）
+  supervisorName  String?
+
+  // 取引先請求予定の場合の取引先
+  billingPartnerName String?
+  billingPartnerId   Int?
+
+  // 日付情報
+  usageDate       String?  // 利用日 (YYYY-MM-DD) - 経費のみ
+  dueDate         String?  // 支払期日 (YYYY-MM-DD) - 販管費・承認時に岡部が設定
+  recordingMonth  String?  // 計上月 (YYYY-MM) - 販管費・岡部が調整可能
+  paymentMonth    String?  // 支払月 (YYYY-MM) - 販管費CF用
+
+  // ステータス管理
+  status          String   @default("draft")
+  // "draft" | "submitted" | "approved" | "rejected" | "synced_to_freee"
+
+  // 予測/実績
+  isActual        Boolean  @default(false)
+
+  // 管理者（岡部）が設定するフィールド
+  accountItemId   Int?     // freee勘定科目ID
+  accountItemName String?  // 勘定科目名（表示用）
+  departmentId    String?
+  department      Department? @relation(fields: [departmentId], references: [id])
+  adminMemo       String?      // freee備考
+  syncDescription Boolean  @default(false) // 利用内容をfreeeの備考に含めるか
+  isQualifiedInvoice Boolean @default(false) // 適格請求書等
+
+  // メモタグ（承認時に岡部が設定・編集、freee連携時に反映）
+  // 例: "販管費振込確認用,仮"
+  memoTagNames    String?
+
+  // freee連携情報
+  freeDealId      Int?
+  freeePartnerId  Int?
+  freeeSyncedAt   DateTime?
+  freeeSyncError  String?
+
+  // データの出所
+  source          String   @default("app")
+
+  // 添付ファイル
+  attachments     Attachment[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ===== 添付ファイル（証憑）=====
+model Attachment {
+  id             String   @id @default(cuid())
+  reportId       String
+  report         ExpenseReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  fileName       String
+  filePath       String   // ローカルファイルパス
+  mimeType       String
+  fileSize       Int
+
+  freeeReceiptId Int?     // freee証憑ID
+
+  createdAt      DateTime @default(now())
+}
+
+// ===== freee連携設定（シングルトン）=====
+model FreeeConfig {
+  id             String    @id @default("singleton")
+  companyId      Int?      // freee事業所ID
+  accessToken    String?
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  lastSyncAt     DateTime? // 最後のfreee→アプリ同期日時
+
+  updatedAt      DateTime  @updatedAt
+}
+
+// ===== 勘定科目キャッシュ =====
+model AccountItemCache {
+  id        String   @id @default(cuid())
+  freeeId   Int      @unique
+  name      String
+  shortcut1 String?
+  shortcut2 String?
+  category  String?  // 大カテゴリ（販管費、売上原価等）
+
+  updatedAt DateTime @updatedAt
+}
+
+// ===== 取引先キャッシュ =====
+model PartnerCache {
+  id        String   @id @default(cuid())
+  freeeId   Int      @unique
+  name      String
+
+  updatedAt DateTime @updatedAt
+}
+
+// ===== メモタグキャッシュ =====
+model MemoTagCache {
+  id        String   @id @default(cuid())
+  freeeId   Int      @unique
+  name      String   // 「給与振込確認用」「販管費振込確認用」「仮」
+
+  updatedAt DateTime @updatedAt
+}
+
+// ===== 部門タグキャッシュ（freee側）=====
+model SectionCache {
+  id        String   @id @default(cuid())
+  freeeId   Int      @unique
+  name      String
+
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:developer.freee.co.jp)",
+      "Bash(npx create-next-app:*)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest init:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npx prisma init:*)",
+      "Bash(npx prisma migrate dev --name init)",
+      "Bash(npx prisma db seed:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx tsx:*)",
+      "Bash(node -e:*)",
+      "Bash(npx prisma migrate reset:*)",
+      "Bash(curl:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(findstr:*)",
+      "Bash(nslookup:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(ngrok version:*)",
+      "Bash(winget install:*)",
+      "Bash(ngrok config add-authtoken:*)",
+      "Bash(where:*)",
+      "Bash(\"C:\\\\Users\\\\user\\\\AppData\\\\Local\\\\Microsoft\\\\WinGet\\\\Packages\\\\Ngrok.Ngrok_Microsoft.Winget.Source_8wekyb3d8bbwe\\\\ngrok.exe\" config add-authtoken 39sm3d7Xu622ewv3xYmDj92exTm_2oKcCJVFD3KE8x4CyuBJt)",
+      "Bash(npx drizzle-kit push:*)",
+      "Bash(node scripts/migrate-to-turso.mjs:*)",
+      "Bash(npx next build)",
+      "Bash(node scripts/reset-password.mjs:*)",
+      "Bash(node -p:*)",
+      "Bash(node scripts/reset-password2.mjs:*)",
+      "Bash(node scripts/reset-all-passwords.mjs:*)"
+    ]
+  }
+}
