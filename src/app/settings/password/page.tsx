@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authClient } from "@/lib/auth-client";
 
 export default function PasswordPage() {
   const router = useRouter();
@@ -43,7 +44,10 @@ export default function PasswordPage() {
       }
 
       setDone(true);
-      setTimeout(() => router.push("/"), 1500);
+      setTimeout(async () => {
+        await authClient.signOut();
+        router.push("/login");
+      }, 1500);
     } finally {
       setSaving(false);
     }
@@ -61,7 +65,7 @@ export default function PasswordPage() {
 
         {done ? (
           <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
-            パスワードを変更しました。トップページへ移動します...
+            パスワードを変更しました。新しいパスワードでログインしてください...
           </p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
