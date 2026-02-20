@@ -4,8 +4,18 @@ import { headers } from "next/headers";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { asc, eq } from "drizzle-orm";
-import { hashSync } from "bcryptjs";
+import { scryptAsync } from "@noble/hashes/scrypt";
+import { hex } from "@better-auth/utils/hex";
 import { sendInvitationEmail } from "@/lib/mailer";
+
+async function hashPassword(password: string): Promise<string> {
+  const salt = hex.encode(crypto.getRandomValues(new Uint8Array(16)));
+  const key = await scryptAsync(password.normalize("NFKC"), salt, {
+    N: 16384, r: 16, p: 1, dkLen: 64,
+    maxmem: 128 * 16384 * 16 * 2,
+  });
+  return `${salt}:${hex.encode(key)}`;
+}
 import type { AuthUser } from "@/lib/auth";
 
 // GET /api/admin/users
@@ -82,7 +92,7 @@ export async function POST(req: NextRequest) {
     accountId:  userId,
     providerId: "credential",
     userId,
-    password:   hashSync(password, 10),
+    password:   await hashPassword(password),
     createdAt:  now,
     updatedAt:  now,
   });
