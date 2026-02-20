@@ -1,4 +1,6 @@
-import { prisma } from "./db";
+import { db } from "@/db";
+import * as schema from "@/db/schema";
+import { eq, and, like, asc } from "drizzle-orm";
 import { Resend } from "resend";
 
 function getResend() {
@@ -48,16 +50,16 @@ let cache: CacheEntry | null = null;
 export async function collectPaymentData(): Promise<void> {
   const today = todayJST();
 
-  const reports = await prisma.expenseReport.findMany({
-    where: {
-      dueDate:      today,
-      status:       "synced_to_freee",
-      memoTagNames: { contains: "給与振込確認用" },
+  const reports = await db.query.expenseReport.findMany({
+    where: (r, { eq, and, like }) => and(
+      eq(r.dueDate, today),
+      eq(r.status, "synced_to_freee"),
+      like(r.memoTagNames, "%給与振込確認用%"),
+    ),
+    with: {
+      submitter: { columns: { name: true, email: true } },
     },
-    include: {
-      submitter: { select: { name: true, email: true } },
-    },
-    orderBy: { createdAt: "asc" },
+    orderBy: (r, { asc }) => [asc(r.createdAt)],
   });
 
   const byUser = new Map<string, { name: string; email: string; reports: CachedReport[] }>();
