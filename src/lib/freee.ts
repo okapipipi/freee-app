@@ -342,16 +342,16 @@ export async function uploadReceiptToFreee(
   mimeType: string,
 ): Promise<number> {
   const makeForm = async () => {
-    let fileBuffer: Buffer;
+    let fileData: ArrayBuffer;
     if (filePath.startsWith("http")) {
       const res = await fetch(filePath);
-      fileBuffer = Buffer.from(await res.arrayBuffer());
+      fileData = await res.arrayBuffer();
     } else {
-      fileBuffer = fs.readFileSync(filePath);
+      fileData = fs.readFileSync(filePath).buffer as ArrayBuffer;
     }
     const form = new FormData();
     form.append("company_id", String(companyId));
-    form.append("receipt", new Blob([fileBuffer], { type: mimeType }), fileName);
+    form.append("receipt", new Blob([fileData], { type: mimeType }), fileName);
     return form;
   };
 
