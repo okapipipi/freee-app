@@ -111,7 +111,8 @@ export default function SgaSubmitPage() {
 
   function buildTitle(v: F) {
     const cat = v.category === "sga_billable" ? "販管費（取引先請求予定）" : "販管費";
-    return `${cat} ${v.recordingMonth}`.trim();
+    const dateStr = v.recordingMonth.replace(/-/g, "/");
+    return `${cat} ${dateStr}`.trim();
   }
 
   const R = <span className="text-red-500 ml-0.5">*</span>;
@@ -310,16 +311,18 @@ export default function SgaSubmitPage() {
               </div>
             </div>
 
-            {/* 計上月・支払月 */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* 計上日・支払日 */}
+            <div className="space-y-4">
               <div className="space-y-1">
-                <Label>計上月{R}</Label>
-                <Input type="month" {...register("recordingMonth")} />
+                <Label>計上日{R}</Label>
+                <Input type="date" {...register("recordingMonth")} />
+                <p className="text-xs text-gray-400">単発費用以外は月末日を選択してください</p>
                 <Err k="recordingMonth" />
               </div>
               <div className="space-y-1">
-                <Label>支払月</Label>
-                <Input type="month" {...register("paymentMonth")} />
+                <Label>支払日</Label>
+                <Input type="date" {...register("paymentMonth")} />
+                <p className="text-xs text-gray-400">単発費用以外は月末日を選択してください</p>
               </div>
             </div>
 

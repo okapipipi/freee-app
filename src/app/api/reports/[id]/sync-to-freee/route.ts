@@ -60,9 +60,12 @@ export async function POST(
     const isExpense  = report.category === "expense"      || report.category === "expense_billable";
     const isOverseas = report.taxType === "overseas";
 
+    // recordingMonth は YYYY-MM（旧）または YYYY-MM-DD（新）のどちらかを受け付ける
     const issueDate = isExpense
       ? report.usageDate!
-      : getEndOfMonth(report.recordingMonth!);
+      : /^\d{4}-\d{2}-\d{2}$/.test(report.recordingMonth ?? "")
+        ? report.recordingMonth!
+        : getEndOfMonth(report.recordingMonth!);
     const dueDate = report.dueDate || issueDate;
 
     let partnerId: number | null = null;

@@ -27,7 +27,7 @@ export async function saveUploadedFile(file: File): Promise<{
   const uniqueName = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
 
   const blob = await put(uniqueName, file, {
-    access: "public",
+    access: "private",
     contentType: file.type,
   });
 

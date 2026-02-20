@@ -32,14 +32,14 @@ const adminNav: NavItem[] = [
 ];
 
 const employeeNav: NavItem[] = [
-  { label: "経費申請", href: "/employee/submit", icon: <FilePlus className="h-4 w-4" /> },
-  { label: "申請履歴", href: "/employee/history", icon: <History className="h-4 w-4" /> },
+  { label: "経費・販管費申請", href: "/employee/submit", icon: <FilePlus className="h-4 w-4" /> },
+  { label: "申請履歴",         href: "/employee/history", icon: <History className="h-4 w-4" /> },
 ];
 
 const executiveNav: NavItem[] = [
-  { label: "ダッシュボード", href: "/executive/dashboard", icon: <BarChart3 className="h-4 w-4" /> },
-  { label: "経費申請",       href: "/employee/submit",     icon: <PenLine className="h-4 w-4" /> },
-  { label: "申請履歴",       href: "/employee/history",    icon: <History className="h-4 w-4" /> },
+  { label: "ダッシュボード",   href: "/executive/dashboard", icon: <BarChart3 className="h-4 w-4" /> },
+  { label: "経費・販管費申請", href: "/employee/submit",     icon: <PenLine className="h-4 w-4" /> },
+  { label: "申請履歴",         href: "/employee/history",    icon: <History className="h-4 w-4" /> },
 ];
 
 function getNavItems(role: string): NavItem[] {
