@@ -293,12 +293,6 @@ export default function SgaSubmitPage() {
             <div className="space-y-1">
               <Label>費用発生の終了予定</Label>
               <div className="flex gap-2">
-                <Input
-                  type="month"
-                  className="flex-1"
-                  {...register("costEndDate")}
-                  disabled={costEndDate === "unknown"}
-                />
                 <Button
                   type="button"
                   variant="outline"
@@ -308,6 +302,12 @@ export default function SgaSubmitPage() {
                 >
                   不明
                 </Button>
+                <Input
+                  type="month"
+                  className="flex-1"
+                  {...register("costEndDate")}
+                  disabled={costEndDate === "unknown"}
+                />
               </div>
             </div>
 
@@ -339,6 +339,7 @@ export default function SgaSubmitPage() {
                   </SelectContent>
                 </Select>
               )} />
+              <p className="text-xs text-gray-400">費用の計上部門がわかる場合のみ入力してください</p>
             </div>
 
           </CardContent>
