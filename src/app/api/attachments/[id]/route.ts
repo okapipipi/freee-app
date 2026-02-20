@@ -4,7 +4,6 @@ import { headers } from "next/headers";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
-import fs from "fs/promises";
 import type { AuthUser } from "@/lib/auth";
 
 export async function GET(
@@ -37,15 +36,10 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  try {
-    const data = await fs.readFile(attachment.filePath);
-    return new NextResponse(data, {
-      headers: {
-        "Content-Type":        attachment.mimeType,
-        "Content-Disposition": `inline; filename="${encodeURIComponent(attachment.fileName)}"`,
-      },
-    });
-  } catch {
-    return NextResponse.json({ error: "File not found on disk" }, { status: 404 });
+  // Vercel Blob URL の場合はリダイレクト
+  if (attachment.filePath.startsWith("http")) {
+    return NextResponse.redirect(attachment.filePath);
   }
+
+  return NextResponse.json({ error: "File not found" }, { status: 404 });
 }

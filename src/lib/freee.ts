@@ -341,8 +341,14 @@ export async function uploadReceiptToFreee(
   fileName: string,
   mimeType: string,
 ): Promise<number> {
-  const makeForm = () => {
-    const fileBuffer = fs.readFileSync(filePath);
+  const makeForm = async () => {
+    let fileBuffer: Buffer;
+    if (filePath.startsWith("http")) {
+      const res = await fetch(filePath);
+      fileBuffer = Buffer.from(await res.arrayBuffer());
+    } else {
+      fileBuffer = fs.readFileSync(filePath);
+    }
     const form = new FormData();
     form.append("company_id", String(companyId));
     form.append("receipt", new Blob([fileBuffer], { type: mimeType }), fileName);
@@ -353,7 +359,7 @@ export async function uploadReceiptToFreee(
     const res = await fetch(`${FREEE_API_BASE}/api/1/receipts`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
-      body: makeForm(),
+      body: await makeForm(),
     });
     return res;
   };

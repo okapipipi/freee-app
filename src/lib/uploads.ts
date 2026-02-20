@@ -1,7 +1,6 @@
-import fs from "fs/promises";
+import { put, del } from "@vercel/blob";
 import path from "path";
 
-const UPLOAD_DIR = path.resolve(process.cwd(), "uploads");
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
   "image/jpeg",
@@ -24,23 +23,22 @@ export async function saveUploadedFile(file: File): Promise<{
     throw new Error("PDF・画像ファイル（JPG/PNG/GIF）のみアップロードできます");
   }
 
-  await fs.mkdir(UPLOAD_DIR, { recursive: true });
-
   const ext = path.extname(file.name) || ".bin";
-  const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
-  const filePath = path.join(UPLOAD_DIR, uniqueName);
+  const uniqueName = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await fs.writeFile(filePath, buffer);
+  const blob = await put(uniqueName, file, {
+    access: "public",
+    contentType: file.type,
+  });
 
   return {
     fileName: file.name,
-    filePath,
+    filePath: blob.url,
     mimeType: file.type,
     fileSize: file.size,
   };
 }
 
 export async function deleteUploadedFile(filePath: string): Promise<void> {
-  await fs.unlink(filePath).catch(() => {});
+  await del(filePath).catch(() => {});
 }

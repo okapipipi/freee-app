@@ -29,7 +29,11 @@
       "Bash(node scripts/reset-password.mjs:*)",
       "Bash(node -p:*)",
       "Bash(node scripts/reset-password2.mjs:*)",
-      "Bash(node scripts/reset-all-passwords.mjs:*)"
+      "Bash(node scripts/reset-all-passwords.mjs:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git rm:*)"
     ]
   }
 }
