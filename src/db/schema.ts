@@ -123,6 +123,7 @@ export const freeeConfig = sqliteTable("freeeConfig", {
   refreshToken: text("refreshToken"),
   tokenExpiresAt: integer("tokenExpiresAt", { mode: "timestamp" }),
   lastSyncAt: integer("lastSyncAt", { mode: "timestamp" }),
+  lastPlSyncAt: integer("lastPlSyncAt", { mode: "timestamp" }),
   updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
 });
 
@@ -155,6 +156,19 @@ export const sectionCache = sqliteTable("sectionCache", {
   freeeId: integer("freeeId").notNull().unique(),
   name: text("name").notNull(),
   updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
+});
+
+export const freeeDealsCache = sqliteTable("freeeDealsCache", {
+  id: text("id").primaryKey(),
+  freeeDealId: integer("freeeDealId").notNull(),
+  issueDate: text("issueDate").notNull(),    // YYYY-MM-DD
+  dueDate: text("dueDate"),                   // YYYY-MM-DD
+  partnerName: text("partnerName"),
+  sectionName: text("sectionName"),           // 部門名
+  accountItemName: text("accountItemName").notNull(),
+  amount: integer("amount").notNull(),
+  memoTagNames: text("memoTagNames"),         // カンマ区切り e.g. "仮,販管費振込確認用"
+  syncedAt: integer("syncedAt", { mode: "timestamp" }).notNull(),
 });
 
 // ===== リレーション =====
