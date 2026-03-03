@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { syncDealsCache, syncTrialPl } from "@/lib/freee";
 import type { AuthUser } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
@@ -10,23 +11,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // cron エンドポイントを内部呼び出し
-  const baseUrl = process.env.NEXTAUTH_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
-  const cronSecret = process.env.CRON_SECRET ?? "";
+  try {
+    const dealsResult = await syncDealsCache();
 
-  const res = await fetch(`${baseUrl}/api/cron/sync-pl`, {
-    headers: {
-      Authorization: `Bearer ${cronSecret}`,
-    },
-  });
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const trialPlResult = await syncTrialPl([currentMonth]);
 
-  const data = await res.json();
-  if (!res.ok) {
+    return NextResponse.json({ success: true, deals: dealsResult, trialPl: trialPlResult });
+  } catch (err: any) {
+    console.error("[sync-freee-pl]", err);
     return NextResponse.json(
-      { error: data.error ?? "同期に失敗しました" },
-      { status: res.status }
+      { error: err.message ?? "同期に失敗しました" },
+      { status: 500 }
     );
   }
-
-  return NextResponse.json(data);
 }

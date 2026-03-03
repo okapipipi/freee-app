@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, ChevronLeft, RefreshCw } from "lucide-react";
-import type { DashboardData, PlRow, CfRow, RunningRow } from "@/app/api/admin/dashboard/route";
+import type { DashboardData, PlRow, CfRow, RunningRow, TrialPlRow } from "@/app/api/admin/dashboard/route";
 
 // ---------------------------------------------------------------------------
 // ユーティリティ
@@ -108,10 +108,10 @@ function PlTable({ rows, year, deptFilter }: PlTableProps) {
             const deptOpen = openDepts.has(dept);
 
             return (
-              <>
+              <React.Fragment key={dept}>
                 {/* 部門行（deptFilterがない場合のみ） */}
                 {!deptFilter && (
-                  <tr key={`dept-${dept}`} className="border-b border-gray-200 bg-gray-50 hover:bg-gray-100 cursor-pointer" onClick={() => toggleDept(dept)}>
+                  <tr className="border-b border-gray-200 bg-gray-50 hover:bg-gray-100 cursor-pointer" onClick={() => toggleDept(dept)}>
                     <td className="sticky left-0 z-10 bg-gray-50 px-3 py-2 font-semibold">
                       <span className="flex items-center gap-1">
                         {deptOpen ? <ChevronDown className="w-3.5 h-3.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
@@ -139,8 +139,8 @@ function PlTable({ rows, year, deptFilter }: PlTableProps) {
                   const acctOpen = openAccts.has(acctKey);
 
                   return (
-                    <>
-                      <tr key={`acct-${acctKey}`} className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer" onClick={() => toggleAcct(acctKey)}>
+                    <React.Fragment key={acctKey}>
+                      <tr className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer" onClick={() => toggleAcct(acctKey)}>
                         <td className={`sticky left-0 z-10 bg-white px-3 py-2 ${deptFilter ? "" : "pl-6"}`}>
                           <span className="flex items-center gap-1">
                             {acctOpen ? <ChevronDown className="w-3.5 h-3.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
@@ -170,10 +170,10 @@ function PlTable({ rows, year, deptFilter }: PlTableProps) {
                           </tr>
                         );
                       })}
-                    </>
+                    </React.Fragment>
                   );
                 })}
-              </>
+              </React.Fragment>
             );
           })}
 
@@ -486,9 +486,130 @@ function CfSection({ jitsuRows, mokuhyoRows, year, deptFilter }: CfSectionProps)
 }
 
 // ---------------------------------------------------------------------------
+// 販管費内訳テーブル（trial_pl ベース）
+// ---------------------------------------------------------------------------
+interface SgaBreakdownTableProps {
+  rows: TrialPlRow[];
+  year: number;
+  deptFilter?: string;
+}
+
+function SgaBreakdownTable({ rows, year, deptFilter }: SgaBreakdownTableProps) {
+  const months = Array.from({ length: 12 }, (_, i) =>
+    `${year}-${String(i + 1).padStart(2, "0")}`
+  );
+
+  // 部門フィルタ: deptFilter=undefined → sectionName=null（全体）のデータ
+  //              deptFilter=部門名 → その部門のデータ
+  const filtered = useMemo(() => {
+    if (deptFilter === undefined) {
+      return rows.filter((r) => r.sectionName === null);
+    }
+    return rows.filter((r) => r.sectionName === deptFilter);
+  }, [rows, deptFilter]);
+
+  // 勘定科目ごとに月別金額を集計
+  const acctMap = useMemo(() => {
+    const map: Record<string, Record<string, number>> = {};
+    for (const r of filtered) {
+      if (!map[r.accountItemName]) map[r.accountItemName] = {};
+      map[r.accountItemName][r.yearMonth] =
+        (map[r.accountItemName][r.yearMonth] ?? 0) + r.amount;
+    }
+    return map;
+  }, [filtered]);
+
+  const acctNames = Object.keys(acctMap).sort();
+
+  if (acctNames.length === 0) {
+    return (
+      <div className="py-8 text-center text-gray-400 text-sm">
+        データがありません。「今すぐ更新」または「販管費全体同期」を実行してください。
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr className="border-b-2 border-gray-300 bg-gray-50">
+            <th className="sticky left-0 z-10 bg-gray-50 px-3 py-2 text-left font-semibold min-w-[160px]">
+              勘定科目
+            </th>
+            {months.map((m) => (
+              <th
+                key={m}
+                className={`px-2 py-2 text-right font-semibold whitespace-nowrap min-w-[72px] text-xs ${
+                  isCurrent(m) ? "bg-blue-50" : ""
+                }`}
+              >
+                {parseInt(m.split("-")[1], 10)}月
+              </th>
+            ))}
+            <th className="px-3 py-2 text-right font-semibold whitespace-nowrap text-xs">合計</th>
+          </tr>
+        </thead>
+        <tbody>
+          {acctNames.map((acct) => {
+            const byMonth = acctMap[acct];
+            const total = Object.values(byMonth).reduce((a, b) => a + b, 0);
+            return (
+              <tr key={acct} className="border-b border-gray-100 hover:bg-gray-50">
+                <td className="sticky left-0 z-10 bg-white px-3 py-2 font-medium">{acct}</td>
+                {months.map((m) => (
+                  <td
+                    key={m}
+                    className={`px-2 py-2 text-right ${isCurrent(m) ? "bg-blue-50" : ""} ${
+                      isPast(m) ? "" : "text-gray-400"
+                    }`}
+                  >
+                    {byMonth[m] ? fmt(byMonth[m]) : ""}
+                  </td>
+                ))}
+                <td className="px-3 py-2 text-right font-semibold">{total ? fmt(total) : ""}</td>
+              </tr>
+            );
+          })}
+          {/* 合計行 */}
+          <tr className="border-t-2 border-gray-400 font-bold bg-white">
+            <td className="sticky left-0 z-10 bg-white px-3 py-2">合計</td>
+            {months.map((m) => {
+              const monthTotal = acctNames.reduce(
+                (sum, acct) => sum + (acctMap[acct][m] ?? 0),
+                0
+              );
+              return (
+                <td
+                  key={m}
+                  className={`px-2 py-2 text-right ${isCurrent(m) ? "bg-blue-50" : ""} ${
+                    isPast(m) ? "" : "text-gray-400"
+                  }`}
+                >
+                  {monthTotal ? fmt(monthTotal) : ""}
+                </td>
+              );
+            })}
+            <td className="px-3 py-2 text-right">
+              {fmt(
+                acctNames.reduce(
+                  (sum, acct) =>
+                    sum + Object.values(acctMap[acct]).reduce((a, b) => a + b, 0),
+                  0
+                )
+              )}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // メインコンポーネント
 // ---------------------------------------------------------------------------
-const DEPT_TABS = ["全体", "営業代行", "Salesforce", "Corporate", "AIDOG", "人材紹介"] as const;
+const DEPT_TABS = ["全体", "営業代行", "Salesforce", "Corporate", "エイジー", "AIDOG"] as const;
 type MainTab = "pl" | "cf" | "running";
 
 interface DashboardContentProps {
@@ -504,6 +625,7 @@ export function DashboardContent({ title }: DashboardContentProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [syncingTrialPl, setSyncingTrialPl] = useState(false);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -543,6 +665,26 @@ export function DashboardContent({ title }: DashboardContentProps) {
     }
   }
 
+  async function handleSyncTrialPl() {
+    setSyncingTrialPl(true);
+    try {
+      const res = await fetch("/api/admin/sync-trial-pl", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ year }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? "同期に失敗しました");
+      }
+      fetchData();
+    } catch (err: any) {
+      alert(`販管費同期エラー: ${err.message}`);
+    } finally {
+      setSyncingTrialPl(false);
+    }
+  }
+
   const availableYears = data?.availableYears ?? [currentYear];
   const canPrev = year > Math.min(...availableYears);
   const canNext = year < Math.max(...availableYears);
@@ -568,6 +710,10 @@ export function DashboardContent({ title }: DashboardContentProps) {
             <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing || loading}>
               <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? "animate-spin" : ""}`} />
               今すぐ更新
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleSyncTrialPl} disabled={syncingTrialPl || loading}>
+              <RefreshCw className={`w-4 h-4 mr-1 ${syncingTrialPl ? "animate-spin" : ""}`} />
+              販管費全体同期
             </Button>
           </div>
 
@@ -624,7 +770,7 @@ export function DashboardContent({ title }: DashboardContentProps) {
           <CardTitle className="text-base">
             {year}年{" "}
             {deptTab !== "全体" ? `${deptTab} / ` : ""}
-            {mainTab === "pl" ? "PL集計" : mainTab === "cf" ? "CF集計" : "ランニングコスト"}
+            {mainTab === "pl" ? "PL集計（申請ベース）" : mainTab === "cf" ? "CF集計" : "ランニングコスト"}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -658,6 +804,30 @@ export function DashboardContent({ title }: DashboardContentProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* 販管費内訳（freee trial_pl ベース） */}
+      {mainTab === "pl" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+              {year}年{" "}
+              {deptTab !== "全体" ? `${deptTab} / ` : ""}
+              販管費内訳（freee損益計算書ベース）
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading && <div className="py-12 text-center text-gray-400">読み込み中...</div>}
+            {!loading && data && (
+              <SgaBreakdownTable
+                rows={data.trialPlRows}
+                year={year}
+                deptFilter={deptFilter}
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

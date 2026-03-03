@@ -82,7 +82,7 @@ export default function FreeePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast.success(
-        `同期完了: 勘定科目${data.results.accountItems ?? 0}件、取引先${data.results.partners ?? 0}件`
+        `同期完了: 勘定科目${data.results.accountItems ?? 0}件、取引先${data.results.partners ?? 0}件、品目${data.results.items ?? 0}件`
       );
       await fetchStatus();
     } catch (err: any) {

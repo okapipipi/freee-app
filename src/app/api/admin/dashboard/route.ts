@@ -35,12 +35,22 @@ export interface RunningRow {
   recordingMonth: string; // YYYY-MM
 }
 
+export interface TrialPlRow {
+  sectionName: string | null; // null = 全体
+  yearMonth: string;          // "2026-01"
+  accountGroupName: string | null;
+  accountItemId: number | null;
+  accountItemName: string;
+  amount: number;
+}
+
 export interface DashboardData {
   jitsuPlRows: PlRow[];
   mokuhyoPlRows: PlRow[];
   jitsuCfRows: CfRow[];
   mokuhyoCfRows: CfRow[];
   runningRows: RunningRow[];
+  trialPlRows: TrialPlRow[];
   departments: string[];
   availableYears: number[];
   lastPlSyncAt: string | null;
@@ -217,6 +227,19 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // ===== trial_pl キャッシュ =====
+  const allTrialPl = await db.select().from(schema.trialPlCache);
+  const trialPlRows: TrialPlRow[] = allTrialPl
+    .filter((r) => r.yearMonth.startsWith(String(year)))
+    .map((r) => ({
+      sectionName: r.sectionName ?? null,
+      yearMonth: r.yearMonth,
+      accountGroupName: r.accountGroupName ?? null,
+      accountItemId: r.accountItemId ?? null,
+      accountItemName: r.accountItemName,
+      amount: r.amount,
+    }));
+
   // 利用可能な年度一覧（実績・目標の両方を含む）
   const allYears = new Set([...jitsuYears, ...mokuhyoYears, currentYear]);
   const availableYears = Array.from(allYears).sort((a, b) => b - a);
@@ -230,6 +253,7 @@ export async function GET(request: NextRequest) {
     jitsuCfRows,
     mokuhyoCfRows,
     runningRows,
+    trialPlRows,
     departments,
     availableYears,
     lastPlSyncAt: freeeConfig?.lastPlSyncAt

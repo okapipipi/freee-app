@@ -158,6 +158,25 @@ export const sectionCache = sqliteTable("sectionCache", {
   updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
 });
 
+export const itemCache = sqliteTable("itemCache", {
+  id: text("id").primaryKey(),
+  freeeId: integer("freeeId").notNull().unique(),
+  name: text("name").notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
+});
+
+export const trialPlCache = sqliteTable("trialPlCache", {
+  id: text("id").primaryKey(),
+  sectionId: integer("sectionId"),              // null = 全体（部門なし）
+  sectionName: text("sectionName"),             // 表示名 e.g. "エイジー" / null=全体
+  yearMonth: text("yearMonth").notNull(),       // "2026-01"
+  accountGroupName: text("accountGroupName"),   // "販売費及び一般管理費"
+  accountItemId: integer("accountItemId"),
+  accountItemName: text("accountItemName").notNull(),
+  amount: integer("amount").notNull(),          // closing_balance
+  syncedAt: integer("syncedAt", { mode: "timestamp" }).notNull(),
+});
+
 export const freeeDealsCache = sqliteTable("freeeDealsCache", {
   id: text("id").primaryKey(),
   freeeDealId: integer("freeeDealId").notNull(),
@@ -166,6 +185,7 @@ export const freeeDealsCache = sqliteTable("freeeDealsCache", {
   partnerName: text("partnerName"),
   sectionName: text("sectionName"),           // 部門名
   accountItemName: text("accountItemName").notNull(),
+  itemName: text("itemName"),                 // 品目名 e.g. "インターン", "正社員"
   amount: integer("amount").notNull(),
   memoTagNames: text("memoTagNames"),         // カンマ区切り e.g. "仮,販管費振込確認用"
   syncedAt: integer("syncedAt", { mode: "timestamp" }).notNull(),
